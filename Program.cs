@@ -33,7 +33,16 @@ namespace messenger
                     fromUser = signInParts[0].ToString();
 
                     Console.WriteLine("Signed In successfully");
-                    break;
+                    Console.ReadKey();
+                    Console.Clear();
+
+                    SelectAllUsers();
+                    Console.WriteLine("Enter username to write him/her...");
+                    string toUser = Console.ReadLine()!;
+
+                    Console.WriteLine("Enter your message...");
+                    string message = Console.ReadLine()!;
+                    AddMessage(fromUser, toUser, message);
                 }
 
                 else if (response == "2")
@@ -51,27 +60,26 @@ namespace messenger
                     fromUser = SignUpParts[0].ToString();
 
                     Console.WriteLine("Signed Up successfully!");
-                    break;
+                    Console.ReadKey();
+                    Console.Clear();
+
+                    SelectAllUsers();
+                    Console.WriteLine("Enter username to write him/her...");
+                    string toUser = Console.ReadLine()!;
+
+                    Console.WriteLine("Enter your message...");
+                    string message = Console.ReadLine()!;
+                    AddMessage(fromUser, toUser, message);
                 }   
 
                 else if (response == "3")
                 {
+                    Console.Clear();
+                    Console.WriteLine("Good Bye!");
                     return;
                 }
             }
-            Console.Clear();
-
-            bool chat = true;
-            while (chat)
-            {
-                SelectAllUsers();
-                Console.WriteLine("Enter username to write him/her...");
-                string toUser = Console.ReadLine()!;
-
-                Console.WriteLine("Enter your message...");
-                string message = Console.ReadLine()!;
-                AddMessage(fromUser, toUser, message);
-            }
+            
         }
 
         public static void CreateTables()
