@@ -11,7 +11,7 @@ namespace messenger
         {
             CreateTables();
             NpgsqlConnection connection = new NpgsqlConnection(CONNECTIONSTRING);
-            string fromUser;
+            string fromUser = "";
 
             while (true)
             {
@@ -34,15 +34,7 @@ namespace messenger
 
                     Console.WriteLine("Signed In successfully");
                     Console.ReadKey();
-                    Console.Clear();
-
-                    SelectAllUsers();
-                    Console.WriteLine("Enter username to write him/her...");
-                    string toUser = Console.ReadLine()!;
-
-                    Console.WriteLine("Enter your message...");
-                    string message = Console.ReadLine()!;
-                    AddMessage(fromUser, toUser, message);
+                    break;
                 }
 
                 else if (response == "2")
@@ -61,15 +53,7 @@ namespace messenger
 
                     Console.WriteLine("Signed Up successfully!");
                     Console.ReadKey();
-                    Console.Clear();
-
-                    SelectAllUsers();
-                    Console.WriteLine("Enter username to write him/her...");
-                    string toUser = Console.ReadLine()!;
-
-                    Console.WriteLine("Enter your message...");
-                    string message = Console.ReadLine()!;
-                    AddMessage(fromUser, toUser, message);
+                    break;
                 }   
 
                 else if (response == "3")
@@ -79,7 +63,18 @@ namespace messenger
                     return;
                 }
             }
-            
+            Console.Clear();
+
+            while (true)
+            {
+                SelectAllUsers();
+                Console.WriteLine("Enter username to write him/her...");
+                string toUser = Console.ReadLine()!;
+
+                Console.WriteLine("Enter your message...");
+                string message = Console.ReadLine()!;
+                AddMessage(fromUser, toUser, message);
+            }
         }
 
         public static void CreateTables()
