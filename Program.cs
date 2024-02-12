@@ -1,5 +1,7 @@
 ﻿using Npgsql;
 using System.ComponentModel.Design;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace messenger
 {
@@ -15,22 +17,25 @@ namespace messenger
 
             while (true)
             {
+                Console.Clear();
                 Console.WriteLine("1.Sign in\n2.Sign Up\n3.Exit\n");
                 string response = Console.ReadLine()!;
                 
                 if (response == "1")
                 {
                     Console.Clear();
-                    Console.WriteLine("Please write your 'username password' to sign in...");
-                    string[] signInParts = Console.ReadLine()!.Split(' ');
+                    Console.Write("Username >> ");
+                    string username = Console.ReadLine()!;
+                    Console.Write("Password >> ");
+                    string password = Console.ReadLine()!;
 
-                    if (!CheckUser(signInParts[0], signInParts[1]))
+                    if (!CheckUser(username, password))
                     {
                         Console.WriteLine("404 error!\nUsername or Password is incorrect!");
                         break;
                     }
 
-                    fromUser = signInParts[0].ToString();
+                    fromUser = username;
 
                     Console.WriteLine("Signed In successfully");
                     Console.ReadKey();
@@ -40,20 +45,21 @@ namespace messenger
                 else if (response == "2")
                 {
                     Console.Clear();
-                    Console.WriteLine("Please write 'username password' to sign up...");
-                    string[] SignUpParts = Console.ReadLine()!.Split(' ');
+                    Console.Write("Username >> ");
+                    string username = Console.ReadLine()!;
+                    Console.Write("Password >> ");
+                    string password = Console.ReadLine()!;
 
                     connection.Open();
-                    string query = $"Insert into users(username, password) values ({SignUpParts[0]}, {SignUpParts[1]});";
+                    string query = $"Insert into users(username, password) values ('{username}', '{password}');";
                     NpgsqlCommand command = new NpgsqlCommand(query, connection);
                     command.ExecuteNonQuery();
                     connection.Close();
 
-                    fromUser = SignUpParts[0].ToString();
+                    fromUser = username;
 
                     Console.WriteLine("Signed Up successfully!");
                     Console.ReadKey();
-                    break;
                 }   
 
                 else if (response == "3")
@@ -67,21 +73,31 @@ namespace messenger
             while (true)
             {
                 Console.Clear();
-
-                SelectAllUsers();
-                Console.WriteLine("Enter username to write him/her...");
-                string toUser = Console.ReadLine()!;
-
-                Console.WriteLine("Enter your message...");
-                string message = Console.ReadLine()!;
-                AddMessage(fromUser, toUser, message);
-
-                Console.WriteLine("Do you want to send message anew or view your messages?\n(1/2)");
+                Console.WriteLine("1.Send Message\n2.View Messages\n3.Exit");
                 string response = Console.ReadLine()!;
-                if (response == "2")
+                
+                if (response == "1")
+                {
+                    SelectAllUsers();
+                    Console.WriteLine("Enter username to write him/her...");
+                    string toUser = Console.ReadLine()!;
+
+                    Console.WriteLine("Enter your message...");
+                    string message = Console.ReadLine()!;
+                    AddMessage(fromUser, toUser, message);
+                }
+
+                else if (response == "2")
                 {
                     ViewUserMessages(fromUser);
-                    break;
+                    Console.ReadKey();
+                }
+
+                else if (response == "3")
+                {
+                    Console.Clear();
+                    Console.WriteLine("Good Bye!");
+                    return;
                 }
             }
         }
@@ -147,12 +163,13 @@ namespace messenger
 
             connection.Open();
 
-            string query = $"Insert into messages(fromUser, toUser, message) values ({fromUser}, {toUser}, {message});";
+            string query = $"Insert into messages(fromUser, toUser, message) values ('{fromUser}', '{toUser}', '{message}');";
             NpgsqlCommand command = new NpgsqlCommand(query, connection);
             command.ExecuteNonQuery();
 
             connection.Close();
             Console.WriteLine("Message was sent successfully!");
+            Console.ReadKey();
         }
 
         public static void ViewUserMessages(string user)
@@ -174,6 +191,24 @@ namespace messenger
             }
 
             connection.Close();
+        }
+
+        public static string HashPassword(string password)
+        {
+            const int keySize = 64;
+            const int iterations = 350000;
+            HashAlgorithmName hashAlgorithm = HashAlgorithmName.SHA512;
+            
+            var salt = RandomNumberGenerator.GetBytes(keySize);
+
+            var hash = Rfc2898DeriveBytes.Pbkdf2(
+                Encoding.UTF8.GetBytes(password),
+                salt,
+                iterations,
+                hashAlgorithm,
+                keySize);
+
+            return Convert.ToHexString(hash);
         }
     }
 }
