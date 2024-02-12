@@ -63,10 +63,11 @@ namespace messenger
                     return;
                 }
             }
-            Console.Clear();
 
             while (true)
             {
+                Console.Clear();
+
                 SelectAllUsers();
                 Console.WriteLine("Enter username to write him/her...");
                 string toUser = Console.ReadLine()!;
@@ -74,6 +75,14 @@ namespace messenger
                 Console.WriteLine("Enter your message...");
                 string message = Console.ReadLine()!;
                 AddMessage(fromUser, toUser, message);
+
+                Console.WriteLine("Do you want to send message anew or view your messages?\n(1/2)");
+                string response = Console.ReadLine()!;
+                if (response == "2")
+                {
+                    ViewUserMessages(fromUser);
+                    break;
+                }
             }
         }
 
@@ -144,6 +153,27 @@ namespace messenger
 
             connection.Close();
             Console.WriteLine("Message was sent successfully!");
+        }
+
+        public static void ViewUserMessages(string user)
+        {
+            NpgsqlConnection connection = new NpgsqlConnection(CONNECTIONSTRING);
+
+            connection.Open();
+
+            string query = $"Select * from messages;";
+            NpgsqlCommand command = new NpgsqlCommand(query, connection);
+            NpgsqlDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                if (reader[1].ToString() == user)
+                {
+                    Console.WriteLine($"To user >> {reader[2]}\n\tmessage >> {reader[3]}");
+                }
+            }
+
+            connection.Close();
         }
     }
 }
