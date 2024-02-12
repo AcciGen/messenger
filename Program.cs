@@ -8,30 +8,59 @@ namespace messenger
         
         static void Main(string[] args)
         {
-            NpgsqlConnection connection = new NpgsqlConnection(CONNECTIONSTRING);
-
             CreateTables();
+            NpgsqlConnection connection = new NpgsqlConnection(CONNECTIONSTRING);
+            string currentUser;
 
-            bool insertion = true;
-            while (insertion)
+            bool signing = true;
+            while (signing)
             {
-                Console.WriteLine("Please write 'username password' in this order...");
-                string[] parts = Console.ReadLine()!.Split(' ');
+                Console.WriteLine("1.Sign in\n2.Sign Up\n3.Exit\n");
+                string response = Console.ReadLine()!;
                 
-                connection.Open();
-                string query = $"Insert into users(username, password) values ({parts[0]}, {parts[1]});";
-                NpgsqlCommand command = new NpgsqlCommand(query, connection);
-                command.ExecuteNonQuery();
-                connection.Close();
-
-                Console.WriteLine("Inserted successfully!\nDo you want to continue? (Y/n)");
-                if (Console.ReadLine()!.ToUpper() == "N")
+                switch (response)
                 {
-                    insertion = false;
+                    case "1":
+
+                        Console.WriteLine("Please write your 'username password' to sign in...");
+                        string[] signInParts = Console.ReadLine()!.Split(' ');
+
+                        if (!CheckUser(signInParts[0], signInParts[1]))
+                        {
+                            Console.WriteLine("404 error!\nUsername or Password is incorrect!");
+                            break;
+                        }
+
+                        currentUser = signInParts[0];
+                        signing = false;
+
+                        Console.WriteLine("Signed In successfully");
+                        break;
+
+                    case "2":
+                        
+                        Console.WriteLine("Please write 'username password' to sign up...");
+                        string[] SignUpParts = Console.ReadLine()!.Split(' ');
+
+                        connection.Open();
+                        string query = $"Insert into users(username, password) values ({SignUpParts[0]}, {SignUpParts[1]});";
+                        NpgsqlCommand command = new NpgsqlCommand(query, connection);
+                        command.ExecuteNonQuery();
+                        connection.Close();
+
+                        currentUser = SignUpParts[0];
+                        signing = false;
+
+                        Console.WriteLine("Signed Up successfully!");
+                        break;
+                        
+                    case "3":
+
+                        return;
                 }
             }
-            
 
+            bool messaging = false;
         }
 
         public static void CreateTables()
@@ -40,25 +69,38 @@ namespace messenger
 
             connection.Open();
 
-            string query = $"Create table users if not exists (id bigserial primary key, username varchar(50) unique, password varchar(50)); Create table messengers if not exists (id bigserial primary key, user varchar(50), fromUser varchar(50), message text);";
+            string query = $"Create table if not exists users (id bigserial primary key, username varchar(50) unique, password varchar(50)); Create table if not exists messengers (id bigserial primary key, toUser varchar(50), fromUser varchar(50), message text);";
             NpgsqlCommand command = new NpgsqlCommand(query, connection);
             command.ExecuteNonQuery();
 
             connection.Close();
-            Console.WriteLine("Success in creating tables!");
         }
 
-        public static void SelectUsers()
+        public static bool CheckUser(string username, string password)
         {
+            bool check = false;
             NpgsqlConnection connection = new NpgsqlConnection(CONNECTIONSTRING);
 
             connection.Open();
 
-            string query = $"Create table users (id bigserial primary key, username varchar(50) unique, password varchar(50)); Create table messengers (id bigserial primary key, user varchar(50), fromUser varchar(50), message text);";
+            string query = $"Select * from users;";
             NpgsqlCommand command = new NpgsqlCommand(query, connection);
-            command.ExecuteNonQuery();
+            NpgsqlDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    if (reader[1].ToString() == username && reader[2].ToString() == password)
+                    {
+                        check = true;
+                    }
+                }
+            }
 
             connection.Close();
+
+            return check;
         }
 
     }
