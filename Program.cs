@@ -29,17 +29,17 @@ namespace messenger
                     Console.Write("Password >> ");
                     string password = Console.ReadLine()!;
 
-                    if (!CheckUser(username, password))
+                    if (CheckUser(username, password))
                     {
-                        Console.WriteLine("404 error!\nUsername or Password is incorrect!");
+                        fromUser = username;
+
+                        Console.WriteLine("Signed In successfully");
+                        Console.ReadKey();
                         break;
                     }
 
-                    fromUser = username;
-
-                    Console.WriteLine("Signed In successfully");
+                    Console.WriteLine("404 error!\nUsername or Password is incorrect!");
                     Console.ReadKey();
-                    break;
                 }
 
                 else if (response == "2")
@@ -48,10 +48,10 @@ namespace messenger
                     Console.Write("Username >> ");
                     string username = Console.ReadLine()!;
                     Console.Write("Password >> ");
-                    string password = Console.ReadLine()!;
+                    string hashPassword = HashPassword(Console.ReadLine()!, out byte[] salt);
 
                     connection.Open();
-                    string query = $"Insert into users(username, password) values ('{username}', '{password}');";
+                    string query = $"Insert into users(username, hashPassword, saltPassword) values ('{username}', '{hashPassword}', '{Convert.ToHexString(salt)}');";
                     NpgsqlCommand command = new NpgsqlCommand(query, connection);
                     command.ExecuteNonQuery();
                     connection.Close();
@@ -108,7 +108,7 @@ namespace messenger
 
             connection.Open();
 
-            string query = $"Create table if not exists users (id bigserial primary key, username varchar(50) unique, password varchar(50)); Create table if not exists messages (id bigserial primary key, fromUser varchar(50), toUser varchar(50), message text);";
+            string query = $"Create table if not exists users (id bigserial primary key, username varchar(50) unique, hashPassword char(128), saltPassword char(128)); Create table if not exists messages (id bigserial primary key, fromUser varchar(50), toUser varchar(50), message text);";
             NpgsqlCommand command = new NpgsqlCommand(query, connection);
             command.ExecuteNonQuery();
 
@@ -117,7 +117,6 @@ namespace messenger
 
         public static bool CheckUser(string username, string password)
         {
-            bool check = false;
             NpgsqlConnection connection = new NpgsqlConnection(CONNECTIONSTRING);
 
             connection.Open();
@@ -128,14 +127,14 @@ namespace messenger
 
             while (reader.Read())
             {
-                if (reader[1].ToString() == username && reader[2].ToString() == password)
+                if (reader[1].ToString() == username && VerifyPassword(password, reader[2].ToString(), Convert.FromHexString((string)reader[3])))
                 {
-                    check = true;
+                    return true;
                 }
             }
 
             connection.Close();
-            return check;
+            return false;
         }
 
         public static void SelectAllUsers()
@@ -193,13 +192,13 @@ namespace messenger
             connection.Close();
         }
 
-        public static string HashPassword(string password)
+        public static string HashPassword(string password, out byte[] salt)
         {
             const int keySize = 64;
             const int iterations = 350000;
             HashAlgorithmName hashAlgorithm = HashAlgorithmName.SHA512;
-            
-            var salt = RandomNumberGenerator.GetBytes(keySize);
+
+            salt = RandomNumberGenerator.GetBytes(keySize);
 
             var hash = Rfc2898DeriveBytes.Pbkdf2(
                 Encoding.UTF8.GetBytes(password),
@@ -209,6 +208,17 @@ namespace messenger
                 keySize);
 
             return Convert.ToHexString(hash);
+        }
+
+        public static bool VerifyPassword(string password, string hash, byte[] salt)
+        {
+            const int keySize = 64;
+            const int iterations = 350000;
+            HashAlgorithmName hashAlgorithm = HashAlgorithmName.SHA512;
+
+            var hashToCompare = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, hashAlgorithm, keySize);
+
+            return CryptographicOperations.FixedTimeEquals(hashToCompare, Convert.FromHexString(hash));
         }
     }
 }
